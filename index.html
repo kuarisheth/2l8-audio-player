@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2L8 Audio Player</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:#100b18;color:#f7efff;font-family:Arial,sans-serif}
+.player{max-width:520px;margin:auto;padding:22px;background:linear-gradient(145deg,#21132f,#100b18);border:1px solid #70419a;border-radius:18px;box-shadow:0 8px 28px #0006}
+.logo{text-align:center;color:#d5a8ff;font-size:24px;font-weight:900;letter-spacing:4px}
+.sub{text-align:center;color:#a998b8;font-size:11px;letter-spacing:2px;margin:7px 0 22px}
+.cover{height:100px;border-radius:12px;background:linear-gradient(135deg,#3d2057,#170f22);display:grid;place-items:center;font-size:35px;margin-bottom:18px}
+#title{text-align:center;font-size:19px;font-weight:bold}
+#status{text-align:center;font-size:12px;color:#b7a2ca;margin-top:6px}
+audio{display:none}
+.progress{width:100%;accent-color:#bd7aff;cursor:pointer;margin:20px 0 5px}
+.times{display:flex;justify-content:space-between;color:#b7a2ca;font-size:11px}
+.controls{display:flex;justify-content:center;align-items:center;gap:16px;margin:18px 0 22px}
+button{cursor:pointer;color:#fff;border:0}
+.ctrl{background:#39234c;border-radius:50%;width:42px;height:42px;font-size:17px}
+.play{background:#a65be5;color:#170c20;border-radius:50%;width:58px;height:58px;font-size:23px}
+.list{display:grid;gap:8px}
+.track{background:#241831;border:1px solid #443050;border-radius:10px;padding:12px;text-align:left;display:flex;gap:12px;align-items:center}
+.track.active{border-color:#bd7aff;background:#382047}
+.num{color:#c895ff;font-size:12px;width:18px}
+.name{font-weight:bold}
+.hint{text-align:center;color:#9b89aa;font-size:11px;margin-top:15px}
+</style>
+</head>
+<body>
+<div class="player">
+  <div class="logo">2L8 AUDIO</div>
+  <div class="sub">TOO LATE · OFFICIAL PLAYLIST</div>
+  <div class="cover">♫</div>
+  <div id="title">2L8 Pop</div>
+  <div id="status">Prêt à écouter</div>
+
+  <audio id="audio" preload="metadata"></audio>
+  <input class="progress" id="progress" type="range" min="0" max="1000" value="0">
+  <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
+
+  <div class="controls">
+    <button class="ctrl" id="prev" aria-label="Précédent">⏮</button>
+    <button class="play" id="play" aria-label="Lecture">▶</button>
+    <button class="ctrl" id="next" aria-label="Suivant">⏭</button>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="hint">2L8 · PLAY LOUD, ARRIVE TOO LATE</div>
+</div>
+
+<script>
+const songs = [
+  {name:"2L8 Pop",file:"2L8-Pop.mp3"},
+  {name:"Lorna",file:"Lorna.mp3"},
+  {name:"Dargoul",file:"Dargoul.mp3"},
+  {name:"NoRu",file:"NoRu.mp3"}
+];
+
+const audio=document.getElementById("audio");
+const play=document.getElementById("play");
+const progress=document.getElementById("progress");
+const list=document.getElementById("list");
+let current=0;
+
+function time(s){
+  if(!Number.isFinite(s))return "0:00";
+  return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+}
+function render(){
+  list.innerHTML="";
+  songs.forEach((song,i)=>{
+    const b=document.createElement("button");
+    b.className="track"+(i===current?" active":"");
+    b.innerHTML='<span class="num">'+String(i+1).padStart(2,"0")+'</span><span class="name"></span>';
+    b.querySelector(".name").textContent=song.name;
+    b.onclick=()=>load(i,true);
+    list.appendChild(b);
+  });
+}
+function load(i,autoplay){
+  current=(i+songs.length)%songs.length;
+  audio.src=songs[current].file;
+  document.getElementById("title").textContent=songs[current].name;
+  document.getElementById("status").textContent="Chargement…";
+  progress.value=0;
+  document.getElementById("elapsed").textContent="0:00";
+  document.getElementById("duration").textContent="0:00";
+  render();
+  if(autoplay)audio.play().catch(()=>{document.getElementById("status").textContent="Ajoute les MP3 au dépôt pour écouter";});
+}
+play.onclick=()=>{
+  if(!audio.src)load(current,false);
+  if(audio.paused)audio.play().catch(()=>{document.getElementById("status").textContent="Ajoute les MP3 au dépôt pour écouter";});
+  else audio.pause();
+};
+document.getElementById("prev").onclick=()=>load(current-1,true);
+document.getElementById("next").onclick=()=>load(current+1,true);
+audio.onplay=()=>{play.textContent="Ⅱ";document.getElementById("status").textContent="En lecture";};
+audio.onpause=()=>{play.textContent="▶";if(audio.currentTime>0)document.getElementById("status").textContent="En pause";};
+audio.onloadedmetadata=()=>{document.getElementById("duration").textContent=time(audio.duration);};
+audio.ontimeupdate=()=>{
+  document.getElementById("elapsed").textContent=time(audio.currentTime);
+  if(Number.isFinite(audio.duration)&&audio.duration>0)progress.value=audio.currentTime/audio.duration*1000;
+};
+progress.oninput=()=>{
+  if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=progress.value/1000*audio.duration;
+};
+audio.onended=()=>load(current+1,true);
+audio.onerror=()=>{document.getElementById("status").textContent="MP3 introuvable : vérifie les fichiers";};
+render();
+</script>
+</body>
+</html>
